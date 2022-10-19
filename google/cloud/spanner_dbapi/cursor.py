@@ -249,16 +249,29 @@ class Cursor(object):
             if class_ == parse_utils.STMT_UPDATING:
                 sql = parse_utils.ensure_where_clause(sql)
 
+            sql, args = sql_pyformat_args_to_spanner(sql, args or None)
             if class_ != parse_utils.STMT_INSERT:
-                sql, args = sql_pyformat_args_to_spanner(sql, args or None)
+                param_types = get_param_types(args or None)
+            else:
+                table_name, columns, values = parse_utils.get_table_cols_for_insert(sql)
+
+                schema = self.get_table_column_schema(table_name)
+                types_all_cols = {
+                    col: parse_utils.COL_TYPE_NAME_TO_TYPE[schema[col].spanner_type.split("(")[0]] for col in columns
+                }
+
+                param_types = dict()
+                for i in range(len(columns)):
+                    value = values[i]
+                    column = columns[i]
+
+                    param_types[value] = types_all_cols[column]
 
             if not self.connection.autocommit:
                 statement = Statement(
                     sql,
                     args,
-                    get_param_types(args or None)
-                    if class_ != parse_utils.STMT_INSERT
-                    else {},
+                    param_types,
                     ResultsChecksum(),
                     class_ == parse_utils.STMT_INSERT,
                 )
@@ -486,6 +499,7 @@ class Cursor(object):
             return list(snapshot.execute_sql(sql, params, param_types))
 
     def get_table_column_schema(self, table_name):
+        table_name = table_name.replace('`', '')
         rows = self.run_sql_in_snapshot(
             sql=_helpers.SQL_GET_TABLE_COLUMN_SCHEMA,
             params={"table_name": table_name},

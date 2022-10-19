@@ -50,12 +50,13 @@ CODE_TO_DISPLAY_SIZE = {
 def _execute_insert_heterogenous(
     transaction,
     sql_params_list,
+    param_types_dict,
     request_options=None,
 ):
     for sql, params in sql_params_list:
         sql, params = sql_pyformat_args_to_spanner(sql, params)
         transaction.execute_update(
-            sql, params, get_param_types(params), request_options=request_options
+            sql, params, param_types_dict, request_options=request_options
         )
 
 

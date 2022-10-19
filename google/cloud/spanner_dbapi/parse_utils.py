@@ -40,6 +40,18 @@ TYPES_MAP = {
     JsonObject: spanner.param_types.JSON,
 }
 
+# Map Spanner column type names to the actual types
+COL_TYPE_NAME_TO_TYPE = {
+    "BOOL": spanner.param_types.BOOL,
+    "BYTES": spanner.param_types.BYTES,
+    "DATE": spanner.param_types.DATE,
+    "FLOAT64": spanner.param_types.FLOAT64,
+    "INT64": spanner.param_types.INT64,
+    "NUMERIC": spanner.param_types.NUMERIC,
+    "STRING": spanner.param_types.STRING,
+    "TIMESTAMP": spanner.param_types.TIMESTAMP,
+}
+
 SPANNER_RESERVED_KEYWORDS = {
     "ALL",
     "AND",
@@ -160,6 +172,14 @@ RE_INSERT = re.compile(
     # otherwise the rest of the statement could be a complex
     # operation.
     r"^\s*INSERT INTO (?P<table_name>[^\s\(\)]+)\s*\((?P<columns>[^\(\)]+)\)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+RE_INSERT_FULL = re.compile(
+    # Only match the `INSERT INTO <table_name> (columns...)
+    # otherwise the rest of the statement could be a complex
+    # operation.
+    r"(?:(/\* .* \*/))? INSERT INTO (?P<table_name>[^\s\(\)]+)\s*\((?P<columns>[^\(\)]+)\) VALUES \((?P<values>[^\(\)]+)\)",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -320,3 +340,39 @@ def escape_name(name):
     if "-" in name or " " in name or name.upper() in SPANNER_RESERVED_KEYWORDS:
         return "`" + name + "`"
     return name
+
+
+def get_table_cols_for_insert(insert_sql):
+    """Get table and column names from `insert_sql`.o
+    :type insert_sql: str
+    :param params: A SQL INSERT statement
+    :rtype: tuple[str, list[str]]
+    :returns: The table name and list of column names in the statement.
+    """
+    gd = RE_INSERT_FULL.match(insert_sql).groupdict()
+    table_name = gd.get("table_name", "")
+    values = [value.strip().replace('@', '') for value in gd.get("values", "").split(",")]
+    columns = [cn.strip() for cn in gd.get("columns", "").split(",")]
+    return table_name, columns, values
+
+
+def get_param_types_insert(params):
+    """Determine Cloud Spanner types for the given parameters.
+
+    :type params: dict
+    :param params: Parameters requiring to find Cloud Spanner types.
+
+    :rtype: dict
+    :returns: The types index for the given parameters.
+    """
+    if params is None:
+        return
+
+    param_types = {}
+
+    for key, value in params.items():
+        type_ = type(value)
+        if type_ in TYPES_MAP:
+            param_types[key] = TYPES_MAP[type_]
+
+    return param_types

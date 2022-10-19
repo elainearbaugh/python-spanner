@@ -452,7 +452,7 @@ class Connection:
 
         if statement.is_insert:
             _execute_insert_heterogenous(
-                transaction, ((statement.sql, statement.params),), self.request_options
+                transaction, ((statement.sql, statement.params),), statement.param_types, self.request_options
             )
             return (
                 iter(()),
