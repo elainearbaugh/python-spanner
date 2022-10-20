@@ -263,9 +263,10 @@ class Cursor(object):
                 param_types = dict()
                 for i in range(len(columns)):
                     value = values[i]
-                    column = columns[i]
-
-                    param_types[value] = types_all_cols[column]
+                    if value.startswith('@'):
+                        value = value[1:]
+                        column = columns[i]
+                        param_types[value] = types_all_cols[column]
 
             if not self.connection.autocommit:
                 statement = Statement(

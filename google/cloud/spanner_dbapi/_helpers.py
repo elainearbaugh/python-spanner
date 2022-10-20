@@ -54,9 +54,8 @@ def _execute_insert_heterogenous(
     request_options=None,
 ):
     for sql, params in sql_params_list:
-        sql, params = sql_pyformat_args_to_spanner(sql, params)
         transaction.execute_update(
-            sql, params, param_types_dict, request_options=request_options
+            sql, params, param_types_dict or None, request_options=request_options
         )
 
 

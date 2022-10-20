@@ -179,7 +179,7 @@ RE_INSERT_FULL = re.compile(
     # Only match the `INSERT INTO <table_name> (columns...)
     # otherwise the rest of the statement could be a complex
     # operation.
-    r"(?:(/\* .* \*/))? INSERT INTO (?P<table_name>[^\s\(\)]+)\s*\((?P<columns>[^\(\)]+)\) VALUES \((?P<values>[^\(\)]+)\)",
+    r"(?:(/\* .* \*/ ))?INSERT INTO (?P<table_name>[^\s\(\)]+)\s*\((?P<columns>[^\(\)]+)\) VALUES \((?P<values>[^\(\)]+)\)",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -351,28 +351,7 @@ def get_table_cols_for_insert(insert_sql):
     """
     gd = RE_INSERT_FULL.match(insert_sql).groupdict()
     table_name = gd.get("table_name", "")
-    values = [value.strip().replace('@', '') for value in gd.get("values", "").split(",")]
+    values = [value.strip() for value in gd.get("values", "").split(",")]
+
     columns = [cn.strip() for cn in gd.get("columns", "").split(",")]
     return table_name, columns, values
-
-
-def get_param_types_insert(params):
-    """Determine Cloud Spanner types for the given parameters.
-
-    :type params: dict
-    :param params: Parameters requiring to find Cloud Spanner types.
-
-    :rtype: dict
-    :returns: The types index for the given parameters.
-    """
-    if params is None:
-        return
-
-    param_types = {}
-
-    for key, value in params.items():
-        type_ = type(value)
-        if type_ in TYPES_MAP:
-            param_types[key] = TYPES_MAP[type_]
-
-    return param_types
