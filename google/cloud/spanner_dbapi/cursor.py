@@ -300,8 +300,10 @@ class Cursor(object):
                     args or None,
                 )
         except (AlreadyExists, FailedPrecondition, OutOfRange) as e:
+            print(e)
             raise IntegrityError(getattr(e, "details", e)) from e
         except InvalidArgument as e:
+            print(e)
             raise ProgrammingError(getattr(e, "details", e)) from e
         except InternalServerError as e:
             raise OperationalError(getattr(e, "details", e)) from e
