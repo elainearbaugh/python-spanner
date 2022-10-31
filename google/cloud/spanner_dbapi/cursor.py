@@ -300,13 +300,11 @@ class Cursor(object):
                     args or None,
                 )
         except (AlreadyExists, FailedPrecondition, OutOfRange) as e:
-            print(e)
-            raise IntegrityError(getattr(e, "details", e)) from e
+            raise IntegrityError("Message: " + e.message + ", Errors: " + ", ".join(getattr(e, "errors", "")) + "Details: " + ", ".join(getattr(e, "details", ""))) from e
         except InvalidArgument as e:
-            print(e)
-            raise ProgrammingError(getattr(e, "details", e)) from e
+            raise ProgrammingError("Message: " + e.message + ", Errors: " + ", ".join(getattr(e, "errors", "")) + "Details: " + ", ".join(getattr(e, "details", ""))) from e
         except InternalServerError as e:
-            raise OperationalError(getattr(e, "details", e)) from e
+            raise OperationalError(e.message + ", ".join(getattr(e, "errors", "")) + ", ".join(getattr(e, "details", ""))) from e
 
     @check_not_closed
     def executemany(self, operation, seq_of_params):
