@@ -250,10 +250,14 @@ class Cursor(object):
                 sql = parse_utils.ensure_where_clause(sql)
 
             sql, args = sql_pyformat_args_to_spanner(sql, args or None)
-            if class_ != parse_utils.STMT_INSERT:
+            if class_ != parse_utils.STMT_INSERT and not parse_utils.is_update(sql):
                 param_types = get_param_types(args or None)
             else:
-                table_name, columns, values = parse_utils.get_table_cols_for_insert(sql)
+                if class_ == parse_utils.STMT_INSERT:
+                    table_name, columns, values = parse_utils.get_table_cols_for_insert(sql)
+                elif parse_utils.is_update(sql):
+                    table_name, columns, values = parse_utils.get_table_cols_for_update(sql)
+
 
                 schema = self.get_table_column_schema(table_name)
                 types_all_cols = {

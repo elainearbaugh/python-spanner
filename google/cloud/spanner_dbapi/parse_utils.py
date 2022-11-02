@@ -166,6 +166,7 @@ RE_WITH = re.compile(r"^\s*(WITH)", re.IGNORECASE)
 RE_DDL = re.compile(r"^\s*(CREATE|ALTER|DROP)", re.IGNORECASE | re.DOTALL)
 
 RE_IS_INSERT = re.compile(r"^\s*(INSERT)", re.IGNORECASE | re.DOTALL)
+RE_IS_UPDATE = re.compile(r"^\s*(UPDATE)", re.IGNORECASE | re.DOTALL)
 
 RE_INSERT = re.compile(
     # Only match the `INSERT INTO <table_name> (columns...)
@@ -193,6 +194,9 @@ RE_VALUES_PYFORMAT = re.compile(
 
 RE_PYFORMAT = re.compile(r"(%s|%\([^\(\)]+\)s)+", re.DOTALL)
 
+
+def is_update(query):
+    return RE_IS_UPDATE.match(query)
 
 def classify_stmt(query):
     """Determine SQL query type.
@@ -355,3 +359,20 @@ def get_table_cols_for_insert(insert_sql):
 
     columns = [cn.strip() for cn in gd.get("columns", "").split(",")]
     return table_name, columns, values
+
+def get_table_cols_for_update(update_sql):
+    """Get table and column names from `insert_sql`.o
+    :type insert_sql: str
+    :param params: A SQL INSERT statement
+    :rtype: tuple[str, list[str]]
+    :returns: The table name and list of column names in the statement.
+    """
+    print(update_sql)
+    x = sqlparse.parse(update_sql)
+    x = [elem for elem in x[0].flatten() if elem.ttype is not sqlparse.tokens.Text.Whitespace]
+    indexes = [i for i, elem in enumerate(x) if elem.value.startswith('@')]
+    columns = [x[i-2].value for i in indexes]
+    values = [x[i].value for i in indexes]
+    set_index = next(i for i, elem in enumerate(x) if elem.value == 'SET')
+    table = x[set_index-1].value
+    return table, columns, values
