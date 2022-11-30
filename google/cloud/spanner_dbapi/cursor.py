@@ -227,6 +227,10 @@ class Cursor(object):
         :type args: list
         :param args: Additional parameters to supplement the SQL query.
         """
+        def error_concat(e, attr_name):  # used for safe error output
+            list_of_strs = map(str, getattr(e, attr_name, []))
+            return ', '.join(list_of_strs)
+
         self._result_set = None
 
         try:
@@ -304,11 +308,11 @@ class Cursor(object):
                     args or None,
                 )
         except (AlreadyExists, FailedPrecondition, OutOfRange) as e:
-            raise IntegrityError("Message: " + e.message + ", Errors: " + ", ".join(getattr(e, "errors", "")) + "Details: " + ", ".join(getattr(e, "details", ""))) from e
+            raise IntegrityError(f"Message: {e.message} Errors: {error_concat(e, 'errors')} Details: {error_concat(e, 'details')}") from e
         except InvalidArgument as e:
-            raise ProgrammingError("Message: " + e.message + ", Errors: " + ", ".join(getattr(e, "errors", "")) + "Details: " + ", ".join(getattr(e, "details", ""))) from e
+            raise ProgrammingError(f"Message: {e.message} Errors: {error_concat(e, 'errors')} Details: {error_concat(e, 'details')}") from e
         except InternalServerError as e:
-            raise OperationalError(e.message + ", ".join(getattr(e, "errors", "")) + ", ".join(getattr(e, "details", ""))) from e
+            raise OperationalError(f"Message: {e.message} Errors: {error_concat(e, 'errors')} Details: {error_concat(e, 'details')}") from e
 
     @check_not_closed
     def executemany(self, operation, seq_of_params):
